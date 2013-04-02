@@ -1,0 +1,165 @@
+import re
+import sys
+import logging
+import time
+
+import pygame
+from pygame.locals import *
+
+import pgmenu
+
+window_size = screen_width, screen_height = pgmenu.screen_resolution()
+
+pygame.mouse.set_visible(False)
+
+try:
+    gamepad = pygame.joystick.Joystick(0)
+except pygame.error:
+    logging.critical("Could not find gamepad. Exiting.")
+    sys.exit(1)
+
+gamepad.init()
+
+
+
+screen = pygame.display.set_mode(window_size, FULLSCREEN)
+pygame.display.update()
+
+main_menu = pgmenu.Menu(screen, screen_width, screen_height)
+
+
+# add all rom buttons
+for rom_file_path in pgmenu.rom_file_paths('/home/ryan/nes_rom_files/'):
+    # get just the name of the rom (without path or extension) and
+    game_name = rom_file_path.split('/')[-1].split('.')[0]
+    # change to uppercase, replace all underscores with spaces
+    game_name = game_name.upper().replace('_', ' ')
+    rom_path_escaped = re.escape(rom_file_path)
+    main_menu.add_button(pgmenu.Button(game_name, pgmenu.switch_to_emulator, 
+                                       window_size, rom_path_escaped))
+
+
+pygame.display.set_caption("NES Rom Menu")
+pygame.key.set_repeat(250, 15)
+done = False
+
+def redraw():
+    screen.fill(pgmenu.BLACK)
+    main_menu.draw()
+    pygame.display.update()
+    pygame.time.wait(8)
+
+class NESGamepad(object):
+    DELAY_TIME = 0.250 #ms
+    QUIT = 0
+    UP = 1
+    DOWN = 2
+    LEFT = 3
+    RIGHT = 4
+    A = 5
+    B = 6
+    START = 7
+    SELECT = 8
+    def __init__(self, *args, **kwargs):
+        self.js = pygame.joystick.Joystick(*args, **kwargs)
+        self.js.init()
+        self.done = False
+
+    def actions(self):
+        delay_y_current = False
+        delay_y_next = True
+        prev_y_time = 0
+        self.wait_for_all_buttons_released = False
+        self.wait_until = 0
+        while not self.done:
+            for event in pygame.event.get():
+                x_axis, y_axis = (self.js.get_axis(i) for i in range(2))
+                b_a, b_b, b_select, b_start = (self.js.get_button(i)
+                                               for i in (0, 1, 8, 9))
+                if all((b_a, b_b, b_select, b_start)):
+                    self.wait_for_all_buttons_released = True
+                    self.wait_until = time.time() + self.DELAY_TIME
+                
+                if self.wait_for_all_buttons_released:
+                    if time.time() < self.wait_until:
+                        continue
+                    else:
+                        self.wait_for_all_buttons_released = False
+
+                if b_b:
+                    yield self.B
+                elif b_a:
+                    yield self.A
+                elif b_select:
+                    yield self.SELECT
+                elif b_start:
+                    yield self.START
+                elif y_axis > 0.5:
+                    if delay_y_next:
+                        prev_y_time = time.time()
+                        delay_y_current = True
+                        delay_y_next = False
+                    elif delay_y_current:
+                        if time.time() - prev_y_time < self.DELAY_TIME:
+                            continue
+                        else:
+                            delay_y_current = False
+
+                    yield self.DOWN
+                elif y_axis < -0.5:
+                    if delay_y_next:
+                        prev_y_time = time.time()
+                        delay_y_current = True
+                        delay_y_next = False
+                    elif delay_y_current:
+                        if time.time() - prev_y_time < self.DELAY_TIME:
+                            continue
+                        else:
+                            delay_y_current = False
+        
+                    yield self.UP
+                elif x_axis > 0.5:
+                    yield self.RIGHT
+                elif x_axis < -0.5:
+                    yield self.LEFT
+
+                if not (y_axis > 0.5 or y_axis < -0.5):
+                    delay_y_next = True
+                
+    def stop(self):
+        self.done = True
+
+    def wait_for_release(self):
+        self.wait_for_all_buttons_released = True
+        self.wait_until = time.time() + self.DELAY_TIME
+
+y_delay = True
+gamepad = NESGamepad(0)
+pygame.time.set_timer(pygame.USEREVENT, 20)
+
+redraw()
+
+for action in gamepad.actions():
+    if action == gamepad.UP:
+        main_menu.move_up()
+    elif action == gamepad.DOWN:
+        main_menu.move_down()
+    elif action in (gamepad.A, gamepad.START):
+        main_menu.push()
+        gamepad.wait_for_release()
+    elif action == gamepad.B:
+        done = True
+        break
+
+    # ALL EVENT PROCESSING SHOULD GO ABOVE THIS COMMENT
+    
+    # ALL GAME LOGIC SHOULD GO BELOW THIS COMMENT
+    # ALL GAME LOGIC SHOULD GO ABOVE THIS COMMENT
+
+    # ALL CODE TO DRAW SHOULD GO BELOW THIS COMMENT
+    screen.fill(pgmenu.BLACK)
+    main_menu.draw()
+    pygame.display.update()
+    pygame.time.wait(8)
+
+pygame.quit()
