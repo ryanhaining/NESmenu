@@ -7,36 +7,17 @@ import pygame
 from pygame.locals import *
 
 import pgmenu
+import config
 
 window_size = screen_width, screen_height = pgmenu.screen_resolution()
 
 pygame.mouse.set_visible(False)
-
-try:
-    gamepad = pygame.joystick.Joystick(0)
-except pygame.error:
-    logging.critical("Could not find gamepad. Exiting.")
-    sys.exit(1)
-
-gamepad.init()
-
 
 
 screen = pygame.display.set_mode(window_size, FULLSCREEN)
 pygame.display.update()
 
 main_menu = pgmenu.Menu(screen, screen_width, screen_height)
-
-
-# add all rom buttons
-for rom_file_path in pgmenu.rom_file_paths('/home/ryan/nes_rom_files/'):
-    # get just the name of the rom (without path or extension) and
-    game_name = rom_file_path.split('/')[-1].split('.')[0]
-    # change to uppercase, replace all underscores with spaces
-    game_name = game_name.upper().replace('_', ' ')
-    rom_path_escaped = re.escape(rom_file_path)
-    main_menu.add_button(pgmenu.Button(game_name, pgmenu.switch_to_emulator, 
-                                       window_size, rom_path_escaped))
 
 
 pygame.display.set_caption("NES Rom Menu")
@@ -139,6 +120,24 @@ class NESGamepad(object):
 y_delay = True
 gamepad = NESGamepad(0)
 #pygame.time.set_timer(pygame.USEREVENT, 20)
+
+
+def quit(controller):
+    controller.done = True
+
+#add the quit button
+main_menu.add_button(pgmenu.Button("QUIT", quit, gamepad))
+
+# add all rom buttons
+for rom_file_path in pgmenu.rom_file_paths(config.ROM_FILE_PATH):
+    # get just the name of the rom (without path or extension) and
+    game_name = ''.join(rom_file_path.split('/')[-1].split('.')[:-1])
+    # change to uppercase, replace all underscores with spaces
+    game_name = game_name.upper().replace('_', ' ')
+    rom_path_escaped = re.escape(rom_file_path)
+    main_menu.add_button(pgmenu.Button(game_name, pgmenu.switch_to_emulator, 
+                                       window_size, rom_path_escaped))
+
 
 redraw()
 
