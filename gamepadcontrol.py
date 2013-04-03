@@ -47,7 +47,7 @@ def redraw():
     screen.fill(pgmenu.BLACK)
     main_menu.draw()
     pygame.display.update()
-    pygame.time.wait(8)
+    pygame.time.wait(5)
 
 class NESGamepad(object):
     DELAY_TIME = 0.250 #ms
