@@ -71,8 +71,16 @@ class NESGamepad(object):
         prev_y_time = 0
         self.wait_for_all_buttons_released = False
         self.wait_until = 0
+
+        delay = 2500
+        neutral = True
+        pressed = 0
+        last_update = pygame.time.get_ticks()
+
         while not self.done:
-            for event in pygame.event.get():
+                for event in pygame.event.get():
+                    pass
+
                 x_axis, y_axis = (self.js.get_axis(i) for i in range(2))
                 b_a, b_b, b_select, b_start = (self.js.get_button(i)
                                                for i in (0, 1, 8, 9))
@@ -94,37 +102,32 @@ class NESGamepad(object):
                     yield self.SELECT
                 elif b_start:
                     yield self.START
-                elif y_axis > 0.5:
-                    if delay_y_next:
-                        prev_y_time = time.time()
-                        delay_y_current = True
-                        delay_y_next = False
-                    elif delay_y_current:
-                        if time.time() - prev_y_time < self.DELAY_TIME:
-                            continue
+                else:
+                    move = False
+                    if y_axis == 0:
+                        neutral = True
+                        pressed = 0
+                    else:
+                        if neutral:
+                            move = True
+                            neutral = False
                         else:
-                            delay_y_current = False
+                            pressed += pygame.time.get_ticks() - last_update
 
-                    yield self.DOWN
-                elif y_axis < -0.5:
-                    if delay_y_next:
-                        prev_y_time = time.time()
-                        delay_y_current = True
-                        delay_y_next = False
-                    elif delay_y_current:
-                        if time.time() - prev_y_time < self.DELAY_TIME:
-                            continue
-                        else:
-                            delay_y_current = False
-        
-                    yield self.UP
-                elif x_axis > 0.5:
-                    yield self.RIGHT
-                elif x_axis < -0.5:
-                    yield self.LEFT
+                    if pressed > delay:
+                        move = True
+                        #pressed -= delay
 
-                if not (y_axis > 0.5 or y_axis < -0.5):
-                    delay_y_next = True
+                    if move:
+                        if y_axis > 0.5:
+                            yield self.DOWN
+                        elif y_axis < -0.5:
+                            yield self.UP
+
+                        last_update = pygame.time.get_ticks()
+                    else:
+                        yield None
+
                 
     def stop(self):
         self.done = True
@@ -135,7 +138,7 @@ class NESGamepad(object):
 
 y_delay = True
 gamepad = NESGamepad(0)
-pygame.time.set_timer(pygame.USEREVENT, 20)
+#pygame.time.set_timer(pygame.USEREVENT, 20)
 
 redraw()
 
@@ -160,6 +163,5 @@ for action in gamepad.actions():
     screen.fill(pgmenu.BLACK)
     main_menu.draw()
     pygame.display.update()
-    pygame.time.wait(8)
 
 pygame.quit()
