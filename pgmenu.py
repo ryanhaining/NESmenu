@@ -1,3 +1,5 @@
+import gtk
+
 import pygame
 from pygame.locals import *
 pygame.init()
@@ -12,8 +14,14 @@ PALE_BLUE = (153,102,255)
 
 ITEMS_PER_PAGE = 20
 
+def screen_resolution():
+    window = gtk.Window()
+    screen = window.get_screen()
+    return screen.get_width(), screen.get_height()
+
+
 class Button(object):
-    def __init__(self, label, func, *args):
+    def __init__(self, label, func=None, *args):
         self.label = label
         self.func = func
         self.args = args
@@ -48,11 +56,6 @@ class Button(object):
             self.func(*(self.args + args))
 
 
-class Cursor(object):
-    def __init__(self, color):
-        pass
-
-
 class Menu(object):
     indent = 50
     def __init__(self, screen, window_width, window_height):
@@ -72,7 +75,7 @@ class Menu(object):
         self.block_size = dims[3] - dims[1] + self.font_size
         self.max_on_screen = self.win_height / self.font_size
 
-    def move_down(self):
+    def __move_down(self):
         if self.selection == len(self.buttons) - 1:
             return
         self.selection += 1
@@ -81,7 +84,7 @@ class Menu(object):
         else:
             self.top_showing += 1
 
-    def move_up(self):
+    def __move_up(self):
         if self.selection == 0:
             return
         self.selection -= 1
@@ -89,6 +92,20 @@ class Menu(object):
             self.position -= 1
         else:
             self.top_showing -= 1
+
+    def move_down(self, count=1):
+        for _ in range(count):
+            self.__move_down()
+
+    def move_up(self, count=1):
+        for _ in range(count):
+            self.__move_up()
+
+    def page_up(self):
+        self.move_up(ITEMS_PER_PAGE)
+
+    def page_down(self):
+        self.move_down(ITEMS_PER_PAGE)
 
     def push(self):
         self.buttons[self.selection].push()
@@ -108,93 +125,3 @@ class Menu(object):
         button.set_font(self.font_size)
         self.buttons.append(button)
 
-
-import os
-import re
-import subprocess
-import gtk
-
-import config
-
-def screen_resolution():
-    window = gtk.Window()
-    screen = window.get_screen()
-    return screen.get_width(), screen.get_height()
-
-def rom_file_paths(location):
-    rom_files = []
-    for dirname, dirnames, filenames in os.walk(location):
-        for filename in filenames:
-            if filename[-4:] in ('.nes', '.zip', '.fds', '.nsf'):
-                rom_files.append(os.path.join(dirname, filename))
-    
-    rom_files.sort(key=lambda s: s.lower())
-    return rom_files
-
-def run_emulator(rom_file_path):
-    subprocess.call(config.EMULATOR + config.EMULATOR_FLAGS + rom_file_path,
-                    shell=True)
-
-def switch_to_emulator(window_size, rom_file_path):
-    pygame.display.set_mode(window_size)
-    run_emulator(rom_file_path)
-    pygame.display.set_mode(window_size, FULLSCREEN)
-
-if __name__ == '__main__':
-    window_size = screen_width, screen_height = screen_resolution()
-    
-    pygame.mouse.set_visible(False)
-
-    screen = pygame.display.set_mode(window_size, FULLSCREEN)
-    pygame.display.update()
-
-    main_menu = Menu(screen, screen_width, screen_height)
-
-    # add all rom buttons
-    for rom_file_path in rom_file_paths('/home/ryan/nes_rom_files/'):
-        # get just the name of the rom (without path or extension) and
-        game_name = rom_file_path.split('/')[-1].split('.')[0]
-        # change to uppercase, replace all underscores with spaces
-        game_name = game_name.upper().replace('_', ' ')
-        rom_path_escaped = re.escape(rom_file_path)
-        main_menu.add_button(Button(game_name, switch_to_emulator, 
-                                    window_size, rom_path_escaped))
-
-
-    pygame.display.set_caption("Some Window Title")
-    pygame.key.set_repeat(250, 15)
-    done = False
-
-    screen.fill(BLACK)
-
-    while not done:
-        for event in pygame.event.get():
-            if event.type == pygame.KEYDOWN:
-                if event.key == K_UP:
-                    main_menu.move_up()
-                elif event.key == pygame.K_DOWN:
-                    main_menu.move_down()
-                elif event.key in (K_a, K_RETURN):
-                    main_menu.push()
-                elif event.key == pygame.K_ESCAPE:
-                    done = True
-
-            elif event.type == pygame.QUIT:
-                done = True
-            else:
-                print event
-
-        # ALL EVENT PROCESSING SHOULD GO ABOVE THIS COMMENT
-        
-        # ALL GAME LOGIC SHOULD GO BELOW THIS COMMENT
-        # ALL GAME LOGIC SHOULD GO ABOVE THIS COMMENT
-
-        # ALL CODE TO DRAW SHOULD GO BELOW THIS COMMENT
-        screen.fill(BLACK)
-        main_menu.draw(screen)
-        pygame.display.update()
-        # ALL CODE TO DRAW SHOULD GO ABOVE THIS COMMENT
-        # Limit to 20 frames per second
-        pygame.time.wait(8)
-
-    pygame.quit()
