@@ -3,6 +3,10 @@ import time
 import pygame
 
 class Gamepad(object):
+    """Class designed specifically as a joystick for for the
+    TOMEE NES USB controller Item# M05178
+
+    """
     RELEASE_DELAY = 0.250 #ms
     AXIS_DELAY = 2500
     QUIT = 0
@@ -102,5 +106,6 @@ class Gamepad(object):
         self.done = True
 
     def wait_for_release(self):
+        """Wait for RELEASE_DELAY time for all buttons to be released"""
         self.wait_for_all_buttons_released = True
         self.wait_until = time.time() + self.RELEASE_DELAY

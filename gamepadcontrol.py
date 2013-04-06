@@ -1,10 +1,12 @@
+#!/usr/bin/env python
+
 import re
 import sys
 import logging
 import time
 
 import pygame
-from pygame.locals import *
+from pygame.locals import FULLSCREEN
 
 import pgmenu
 import config
@@ -26,15 +28,17 @@ main_menu = pgmenu.Menu(screen, screen_width, screen_height)
 
 # menu to show when no controller can be found
 insert_controller_menu = pgmenu.Menu(screen, screen_width, screen_height)
-insert_controller_menu.add_button(pgmenu.Button('PLEASE INSERT CONTROLLER'))
+insert_controller_menu.add_element(pgmenu.Button('PLEASE INSERT CONTROLLER'))
 
 def redraw(menu):
+    """Draw the given menu on the screen"""
     screen.fill(pgmenu.BLACK)
     menu.draw()
     pygame.display.update()
     pygame.time.wait(5)
 
 def wait_for_controller():
+    """Wait for at least one controller to be inserted"""
     while pygame.joystick.get_count() == 0:
         pygame.joystick.quit()
         print 'no controller connected'
@@ -45,13 +49,13 @@ def wait_for_controller():
 
 pygame.joystick.init()
 wait_for_controller()
+
 gamepad = nesgamepad.Gamepad(0)
 
-def quit_menu(controller):
-    controller.done = True
-
 #add the quit button
-main_menu.add_button(pgmenu.Button("QUIT", quit_menu, gamepad))
+main_menu.add_element(pgmenu.Button("QUIT", gamepad.stop))
+
+main_menu.add_element(pgmenu.Label("GAMES:"))
 
 # add all rom buttons
 for rom_file_path in emucontrol.rom_file_paths():
@@ -60,9 +64,9 @@ for rom_file_path in emucontrol.rom_file_paths():
     # change to uppercase, replace all underscores with spaces
     game_name = game_name.upper().replace('_', ' ')
     rom_path_escaped = re.escape(rom_file_path)
-    main_menu.add_button(pgmenu.Button(game_name,
-                                       emucontrol.switch_to_emulator,
-                                       window_size, rom_path_escaped))
+    main_menu.add_element(pgmenu.Button(game_name,
+                                        emucontrol.switch_to_emulator,
+                                        window_size, rom_path_escaped))
 
 redraw(main_menu)
 
