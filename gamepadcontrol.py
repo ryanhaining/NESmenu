@@ -24,8 +24,9 @@ screen = pygame.display.set_mode(window_size, FULLSCREEN)
 pygame.display.update()
 
 # menu to show when no controller can be found
-insert_controller_menu = pgmenu.Menu(screen, screen_width, screen_height)
-insert_controller_menu.add_element(pgmenu.Label('PLEASE INSERT CONTROLLER'))
+insert_controller_menu = pgmenu.RootMenu(screen, screen_width, screen_height)
+insert_controller_menu.main_menu.add_element(
+    pgmenu.Label('PLEASE INSERT CONTROLLER'))
 
 def redraw(menu):
     """Draw the given menu on the screen"""
@@ -69,33 +70,33 @@ def continue_game(emu_controller, root_menu, load_state, save_state):
 fceux_controller = emucontrol.EmuController(window_size)
 
 # menu for all roms
-main_menu = pgmenu.RootMenu(screen, screen_width, screen_height)
+game_menu = pgmenu.RootMenu(screen, screen_width, screen_height)
 
 #add the quit button
-main_menu.add_element(pgmenu.Button("SHUTDOWN SYSTEM", gamepad.stop))
+game_menu.main_menu.add_element(pgmenu.Button("SHUTDOWN SYSTEM", gamepad.stop))
 
-main_menu.add_element(pgmenu.Label("Games:"))
+game_menu.main_menu.add_element(pgmenu.Label("Games:"))
 
 # SubMenus for selecting a save slot
-new_menu = pgmenu.SubMenu('NEW GAME', main_menu)
-continue_menu = pgmenu.SubMenu('CONTINUE', main_menu)
+new_menu = pgmenu.SubMenu('NEW GAME', game_menu)
+continue_menu = pgmenu.SubMenu('CONTINUE', game_menu)
 
 for menu in (new_menu, continue_menu):
     menu.add_element(pgmenu.Label('Select a Save Slot to use:'))
 
 new_menu.add_element(
         pgmenu.Button('NO SAVE', new_game, fceux_controller,
-                      main_menu, emucontrol.NO_STATE))
+                      game_menu, emucontrol.NO_STATE))
 
 for i in range(10):
     continue_menu.add_element(
         pgmenu.Button('SLOT {0}'.format(i+1), continue_game, fceux_controller,
-                      main_menu, i, i))
+                      game_menu, i, i))
     new_menu.add_element(
         pgmenu.Button('SLOT {0}'.format(i+1), new_game, fceux_controller,
-                      main_menu, i))
+                      game_menu, i))
 
-new_or_continue_menu = pgmenu.SubMenu('', main_menu)
+new_or_continue_menu = pgmenu.SubMenu('', game_menu)
 new_or_continue_menu.add_element(new_menu)
 new_or_continue_menu.add_element(continue_menu)
                                               
@@ -107,32 +108,31 @@ for rom_file_path in emucontrol.rom_file_paths():
     # change to uppercase, replace all underscores with spaces
     game_name = game_name.upper().replace('_', ' ')
     rom_path_escaped = re.escape(rom_file_path)
-    main_menu.add_element(pgmenu.Button(game_name,
-                                        set_game, fceux_controller, main_menu, 
-                                        new_or_continue_menu,
-                                        rom_path_escaped))
+    game_menu.main_menu.add_element(
+        pgmenu.Button(game_name, set_game, fceux_controller, game_menu, 
+                      new_or_continue_menu, rom_path_escaped))
 
-redraw(main_menu)
+redraw(game_menu)
 
 for action in gamepad.actions():
     if action == gamepad.UP:
-        main_menu.move_up()
+        game_menu.move_up()
     elif action == gamepad.DOWN:
-        main_menu.move_down()
+        game_menu.move_down()
     elif action in (gamepad.A, gamepad.START):
-        main_menu.push()
+        game_menu.push()
         gamepad.wait_for_release()
     elif action == gamepad.B:
-        main_menu.back_menu()
+        game_menu.back_menu()
         gamepad.wait_for_release()
     elif action == gamepad.RIGHT:
-        main_menu.page_down()
+        game_menu.page_down()
     elif action == gamepad.LEFT:
-        main_menu.page_up()
+        game_menu.page_up()
     elif action == gamepad.DISCONNECTED:
         print 'gamepad disconnected... wating for reconnect'
         wait_for_controller()
 
-    redraw(main_menu)
+    redraw(game_menu)
 
 pygame.quit()

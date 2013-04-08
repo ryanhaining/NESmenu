@@ -77,25 +77,18 @@ class Button(MenuElement):
         if self.func is not None:
             self.func(*self.args+args, **dict(self.kwargs, **kwargs))
 
-class Menu(object):
+class SubMenu(MenuElement):
     INDENT = 100
-    def __init__(self, screen, window_width, window_height):
+    selectable=True
+    def __init__(self, label, root_menu):
+        self.label = label
+        self.root_menu = root_menu
+
         self.elements = []
         self.selection = 0
         self.position = 0
         self.top_showing = 0
 
-        self.screen = screen
-        self.window_width = window_width
-        self.window_height = window_height
-
-        # create the font used in displaying the text
-        self.font_size = window_height // ITEMS_PER_PAGE
-        self.font = pygame.font.Font(None, self.font_size)
-        sample_text = self.font.render('sample', True, (0,0,0))
-        dims = sample_text.get_bounding_rect()
-        self.block_size = dims[3] - dims[1] + self.font_size
-        self.max_on_screen = self.window_height / self.font_size
 
     def next_selectable(self):
         index = self.selection + 1
@@ -126,7 +119,7 @@ class Menu(object):
             return
         movement = self.next_selectable() - self.selection
         self.selection += movement
-        if self.position < self.max_on_screen - 1:
+        if self.position < self.root_menu.max_on_screen - 1:
             self.position += movement
         else:
             self.top_showing += movement
@@ -163,7 +156,7 @@ class Menu(object):
         self.elements[self.selection].push()
 
     def push(self, *args, **kwargs):
-        self.push_selection(*args, **kwargs)
+        self.root_menu.forward_menu(self)
 
     def display(self):
         """Draw only the elements that fit on the screen, and the cursor"""
@@ -177,44 +170,23 @@ class Menu(object):
         if draw_cursor:
             element_dimensions = self.elements[self.selection].dimensions
             element_dimensions[0] += self.INDENT
-            element_dimensions[1] += self.position * self.font_size
-            pygame.draw.rect(self.screen, PALE_BLUE, element_dimensions)
+            element_dimensions[1] += self.position * self.root_menu.font_size
+            pygame.draw.rect(self.root_menu.screen, PALE_BLUE, 
+                             element_dimensions)
         
         # draw all elements that fit on the screen
         for index, element in enumerate(
             self.elements[self.top_showing:
-                         self.top_showing+self.max_on_screen]):
-            element.draw(self.screen, self.INDENT, (index)*self.font_size)
+                         self.top_showing+self.root_menu.max_on_screen]):
+            element.draw(self.root_menu.screen, self.INDENT, 
+                         (index)*self.root_menu.font_size)
 
     def add_element(self, element):
-        element.set_font(self.font_size)
+        element.set_font(self.root_menu.font_size)
         self.elements.append(element)
-
-
-class SubMenu(MenuElement, Menu):
-    selectable=True
-    def __init__(self, label, root_menu):
-        self.label = label
-        self.root_menu = root_menu
-
-        self.elements = []
-        self.selection = 0
-        self.position = 0
-        self.top_showing = 0
-
 
     def draw(self, screen, x, y):
         screen.blit(self.text, [x, y])
-
-    def push_selection(self, *args, **kwargs):
-        self.elements[self.selection].push()
-        
-    def push(self, *args, **kwargs):
-        """Push the currently selected element, calling it's
-        function, with any optional additional args.
-
-        """
-        self.root_menu.forward_menu(self)
 
     @property
     def dimensions(self):
@@ -231,12 +203,8 @@ class SubMenu(MenuElement, Menu):
         dims = self.text.get_bounding_rect()
         return dims[3] - dims[1] + self.font_size
 
-    #def add_element(self, element):
-    #    element.set_font(self.root_menu.font_size)
-    #    self.elements.append(element)
-
-    def __getattr__(self, attr):
-        return getattr(self.root_menu, attr)
+    #def __getattr__(self, attr):
+    #    return getattr(self.root_menu, attr)
 
 
 class RootMenu(object):
@@ -244,8 +212,8 @@ class RootMenu(object):
         #super(RootMenu, self).__init__(screen, window_width, window_height)
         # a stack for the depth into the menus and submenus
         # this must always contain at least the main menu
-        main_menu = SubMenu('', self)
-        self.menu_stack = [main_menu]
+        self.main_menu = SubMenu('', self)
+        self.menu_stack = [self.main_menu]
 
         self.screen = screen
         self.window_width = window_width
@@ -258,12 +226,6 @@ class RootMenu(object):
         dims = sample_text.get_bounding_rect()
         self.block_size = dims[3] - dims[1] + self.font_size
         self.max_on_screen = self.window_height / self.font_size
-
-    #def display(self):
-    #    if len(self.menu_stack) == 1:
-    #        Menu.display(self.menu_stack[-1])
-    #    else:
-    #        self.menu_stack[-1].display()
 
     def push(self):
         self.menu_stack[-1].push_selection()
