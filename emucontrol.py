@@ -2,6 +2,7 @@ import subprocess
 import os
 import re
 import logging
+import sys
 
 import pygame
 from pygame.locals import *
@@ -27,11 +28,11 @@ def rom_file_paths(location=config.ROM_FILE_PATH):
 
 
 class EmuController(object):
-    def __init__(self, window_size):
-        self.window_size = window_size
+    def __init__(self):
         self.rom = None
         self.load_state = NO_STATE
         self.save_save = NO_STATE
+        self.periodic_saves = True
 
     def set_rom(rom):
         self.rom = rom
@@ -48,18 +49,9 @@ class EmuController(object):
             raise AttributeError('No rom set for Emulator to run.')
 
         cmd = config.EMULATOR + config.EMULATOR_FLAGS
-        cmd += ' --autoloadstate {0} --autosavestate {1} '.format(
+        cmd += ' --loadstate {0} --savestate {1} '.format(
             self.load_state, self.save_state)
+        cmd += ' --periodicsaves {0} '.format(int(self.periodic_saves))
         cmd += self.rom
-        logging.info('Starting emulator with command %s', cmd) 
+        logging.info('Starting emulator with command %s', cmd)
         subprocess.call(cmd, shell=True)
-
-    def switch_to_emulator(self):
-        """Switch the fullscreen menu to windowed mode and open the
-        emulator with the rom provided.  After it exits, make the menu
-        fullscreen again
-
-        """
-        pygame.display.set_mode(self.window_size)
-        self.run_emulator()
-        pygame.display.set_mode(self.window_size, FULLSCREEN)

@@ -13,6 +13,8 @@ import config
 import nesgamepad
 import emucontrol
 
+logging.basicConfig(logLevel=logging.INFO)
+
 # get the dimensions of the screen
 window_size = screen_width, screen_height = pgmenu.screen_resolution()
 
@@ -55,9 +57,12 @@ def set_game(emu_controller, root_menu, next_menu, rom):
     root_menu.forward_menu(next_menu)
 
 def launch(emu_controller, root_menu, load_state, save_state):
+    emu_controller.periodic_saves = save_state != emucontrol.NO_STATE
     emu_controller.load_state = load_state
     emu_controller.save_state = save_state
-    emu_controller.switch_to_emulator()
+    pygame.display.set_mode(window_size)
+    emu_controller.run_emulator()
+    pygame.display.set_mode(window_size, FULLSCREEN)
     root_menu.top_menu()
 
 def new_game(emu_controller, root_menu, save_state):
@@ -67,7 +72,7 @@ def continue_game(emu_controller, root_menu, load_state, save_state):
     launch(emu_controller, root_menu, load_state, save_state)
 
 
-fceux_controller = emucontrol.EmuController(window_size)
+fceux_controller = emucontrol.EmuController()
 
 # menu for all roms
 game_menu = pgmenu.RootMenu(screen, screen_width, screen_height)

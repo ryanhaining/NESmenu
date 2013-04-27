@@ -119,6 +119,13 @@ class SubMenu(MenuElement):
             return
         movement = self.next_selectable() - self.selection
         self.selection += movement
+
+        # TODO finish this v
+        #self.position += movement
+        #if self.position >= self.root_menu.max_on_screen:
+        #    self.position = ITEMS_PER_PAGE - 1
+        #    self.top_showing = self.selection - ITEMS_PER_PAGE
+        # TODO finish this ^
         if self.position < self.root_menu.max_on_screen - 1:
             self.position += movement
         else:
@@ -129,10 +136,13 @@ class SubMenu(MenuElement):
             return
         movement = self.selection - self.prev_selectable()
         self.selection -= movement
-        if self.position > 0:
-            self.position -= movement
-        else:
-            self.top_showing -= movement
+
+        self.position -= movement
+        if self.position < 0:
+            # if it went past the top of the menu, reset the position
+            # to the top
+            self.position = 0
+            self.top_showing = self.selection
 
     def move_down(self, count=1):
         for _ in range(count):
@@ -203,8 +213,8 @@ class SubMenu(MenuElement):
         dims = self.text.get_bounding_rect()
         return dims[3] - dims[1] + self.font_size
 
-    #def __getattr__(self, attr):
-    #    return getattr(self.root_menu, attr)
+    def reset(self):
+        self.move_up(count=self.selection)
 
 
 class RootMenu(object):
@@ -232,7 +242,9 @@ class RootMenu(object):
 
     def back_menu(self):
         if len(self.menu_stack) > 1:
-            self.menu_stack.pop()
+            # remove the top menu from the stack and set it's selection
+            # its first item
+            self.menu_stack.pop().reset()
 
     def forward_menu(self, menu):
         self.menu_stack.append(menu)
