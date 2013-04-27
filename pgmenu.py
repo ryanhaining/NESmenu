@@ -245,12 +245,15 @@ class RootMenu(object):
             # remove the top menu from the stack and set it's selection
             # its first item
             self.menu_stack.pop().reset()
+            return True
+        return False
 
     def forward_menu(self, menu):
         self.menu_stack.append(menu)
 
     def top_menu(self):
-        del self.menu_stack[1:]
+        while self.back_menu():
+            pass
     
     def __getattr__(self, attr):
         return getattr(self.menu_stack[-1], attr)
