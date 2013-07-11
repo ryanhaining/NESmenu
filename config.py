@@ -9,9 +9,10 @@ EMULATOR_FLAGS = (' '
                   '--inputdisplay 0 ' # don't show what buttons are pushed
                   '--showfps 0 ' # don't display fps
                   '--nofscursor 1 ' # don't display cursor in fullscreen
-                  #'--nogui 1 ' # don't draw the window stuff
+                  '--clipsides 1 '
                   '--4buttonexit 1 ' # exit on a+b+select+start
                   '--nospritelim 1 ' # prevent missing pixels
+                  #'--nogui 1 ' # don't draw the window stuff
                   ' ') 
 
 ROM_FILE_PATH = '/home/ryan/nes_rom_files'
