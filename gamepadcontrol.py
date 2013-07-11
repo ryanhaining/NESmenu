@@ -23,13 +23,7 @@ pygame.mouse.set_visible(False)
 
 # create the screen for the menu
 screen = pygame.display.set_mode(window_size, FULLSCREEN)
-img = pygame.image.load('nintendologo.jpg')
-img_width, img_height = img.get_size()
-img_x = screen_width//2 - img_width//2
-img_y = screen_height//2 - img_height//2
-screen.blit(img, (img_x, img_y))
 pygame.display.update()
-time.sleep(0.3)
 
 # menu to show when no controller can be found
 insert_controller_menu = pgmenu.RootMenu(screen, screen_width, screen_height)
